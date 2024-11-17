@@ -122,6 +122,14 @@
         ''' </summary>
         Public ReadOnly Id As String
         ''' <summary>
+        ''' Modrinth 工程服务端支持状态。
+        ''' </summary>
+        Public ReadOnly ServerSide As String
+        ''' <summary>
+        ''' Modrinth 工程客户端支持状态。
+        ''' </summary>
+        Public ReadOnly ClientSide As String
+        ''' <summary>
         ''' CurseForge 文件列表的数字 ID。Modrinth 工程的此项无效。
         ''' </summary>
         Public ReadOnly CurseForgeFileIds As List(Of Integer)
@@ -338,6 +346,8 @@
                     '简单信息
                     Id = If(Data("project_id"), Data("id")) '两个 API 会返回的 key 不一样
                     Slug = Data("slug")
+                    ServerSide = Data("server_side")
+                    ClientSide = Data("client_side")
                     RawName = Data("title")
                     Description = Data("description")
                     LastUpdate = Data("date_modified")
@@ -432,6 +442,32 @@
         ''' 将当前工程信息实例化为控件。
         ''' </summary>
         Public Function ToCompItem(ShowMcVersionDesc As Boolean, ShowLoaderDesc As Boolean) As MyCompItem
+            '获取运行环境支持状态
+            Dim RuntimeDescription As String
+            If ServerSide Is Nothing And ClientSide Is Nothing Then
+                RuntimeDescription = ""
+            Else
+                Dim SupportRuntimes As New List(Of String)
+                If ServerSide = "required" Then
+                    SupportRuntimes.Add("服务端必装")
+                End If
+                If ClientSide = "required" Then
+                    SupportRuntimes.Add("客户端必装")
+                End If
+                If ServerSide = "optional" Then
+                    SupportRuntimes.Add("服务端可选")
+                End If
+                If ClientSide = "optional" Then
+                    SupportRuntimes.Add("客户端可选")
+                End If
+                If ServerSide = "unsupported" Then
+                    SupportRuntimes.Add("服务端无效")
+                End If
+                If ClientSide = "unsupported" Then
+                    SupportRuntimes.Add("客户端无效")
+                End If
+                RuntimeDescription = SupportRuntimes.Join(", ")
+            End If
             '获取版本描述
             Dim GameVersionDescription As String
             If GameVersions Is Nothing OrElse Not GameVersions.Any() Then
@@ -519,10 +555,10 @@
                 NewItem.ColumnVersion3.Width = New GridLength(0)
             ElseIf ShowMcVersionDesc AndAlso ShowMcVersionDesc Then
                 '全部显示
-                NewItem.LabVersion.Text = If(ModLoaderDescriptionPart = "", "", ModLoaderDescriptionPart & " ") & GameVersionDescription
+                NewItem.LabVersion.Text = If(ModLoaderDescriptionPart = "", "", ModLoaderDescriptionPart & " ") & GameVersionDescription & If(RuntimeDescription = "", "", " | " & RuntimeDescription)
             ElseIf ShowMcVersionDesc Then
                 '仅显示版本
-                NewItem.LabVersion.Text = GameVersionDescription
+                NewItem.LabVersion.Text = GameVersionDescription & If(RuntimeDescription = "", "", " | " & RuntimeDescription)
             Else
                 '仅显示 Mod 加载器
                 NewItem.LabVersion.Text = ModLoaderDescriptionFull
